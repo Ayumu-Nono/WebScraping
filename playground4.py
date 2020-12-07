@@ -1,58 +1,44 @@
+from typing import List
+from urllib.parse import urlunsplit
 import requests
-import urllib
 from bs4 import BeautifulSoup
+from selenium import webdriver
+# Webページを取得して解析する
 
-keyword = "black lives matter"
-url = 'https://news.yahoo.co.jp/search'
+load_url = "https://news.yahoo.co.jp/search?p=black+lives+matter&ei=utf-8"
+html = requests.get(load_url)
+soup = BeautifulSoup(html.content, "html.parser")
 
-params = {'hl':'ja', 'gl':'JP', 'ceid':'JP:ja', 'q':keyword}
-article_no = 1
+items: List[BeautifulSoup] = soup.find_all("li", class_="newsFeed_item-ranking")
+print(type(items[0]))
+item = items[0]
+tug_a = item.find("a", class_="newsFeed_item_link")
+tug_time = item.find("time")
+# tug_title = item.find("div", class_="newsFeed_item_title")
+url = tug_a.get("href")
+date = tug_time.text
+# title = tug_time.text
+# print("Found {0} items.".format(len(items)))
 
-# url、パラメータを設定してリクエストを送る
-res = requests.get(url, params=params)
-# レスポンスをBeautifulSoupで解析する
-soup = BeautifulSoup(res.content, "html.parser")
+# 記事詳細に入る
+driver = webdriver.Chrome("chromedriver")
+driver.get(url)
 
-# レスポンスからh3階層のニュースを抽出する（classにxrnccdを含むタグ）
-h3_blocks = soup.select(".newsFeed_list")
-print(h3_blocks)
-for i, h3_entry in enumerate(h3_blocks):
+load_url = url
+html = requests.get(load_url)
+soup = BeautifulSoup(html.content, "html.parser")
 
-    # 記事を10件だけ処理する
-    if article_no == 11:
-        break
-    
-    with open('playground4.txt', mode='a') as f:
-        # ニュースのタイトルを抽出する（h3タグ配下のaタグの内容）
-        h3_title = h3_entry.select_one("h3 a").text
-        # ニュースのリンクを抽出する（h3タグ配下のaタグのhref属性）
-        h3_link = h3_entry.select_one("h3 a")["href"]
-        # 抽出したURLを整形して絶対パスを作る
-        h3_link = urllib.parse.urljoin(url, h3_link)
+article = soup.find("article")
+# print(article)
+tug_title = article.find("h1")
+text = article.text
+comment_info = soup.find_all("li", class_="num")
+print(tug_title)
+# print(text)
+print(comment_info)
 
-        # ニュースのタイトル、リンクをファイルに書き込む
-        f.write(h3_title)
-        f.write('\r\n')
-        f.write(h3_link)
-        f.write('\r\n')
-
-        article_no = article_no + 1
-
-        # h3階層のニュースからh4階層のニュースを抽出する
-        h4_block = h3_entry.select_one(".SbNwzf")
-
-        if h4_block != None:
-            # h4階層が存在するときのみニュースを抽出する
-            h4_articles = h4_block.select("article")
-
-            for j, h4_entry in enumerate(h4_articles):
-                h4_title = h4_entry.select_one("h4 a").text
-                h4_link = h4_entry.select_one("h4 a")["href"]
-                h4_link = urllib.parse.urljoin(url, h4_link)
-
-                f.write(h4_title)
-                f.write('\r\n')
-                f.write(h4_link)
-                f.write('\r\n')
-
-                article_no = article_no + 1
+# コメント抽出
+load_url = url + "/comments"
+html = requests.get(load_url)
+soup = BeautifulSoup(html.content, "html.parser")
+# print(soup.find_all("li"))
