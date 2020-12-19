@@ -36,7 +36,9 @@ class WebScraper:
 
     def sequence(self):
         self.driver.get(self.landing_url)
-        # self.__button_click(url=self.landing_url, button_text="もっと見る")
+        self.__button_click(url=self.landing_url, button_text="もっと見る")
+        self.__button_click(url=self.landing_url, button_text="もっと見る")
+        self.__button_click(url=self.landing_url, button_text="もっと見る")
         html = self.driver.page_source
         soup = BeautifulSoup(html, "lxml")
         tug_ol = soup.find("ol", class_="newsFeed_list")
@@ -98,8 +100,11 @@ class WebScraper:
         iframe = self.driver.find_element_by_class_name("news-comment-plguin-iframe")
         self.driver.switch_to.frame(iframe)
         comment_boxes = self.driver.find_elements_by_class_name("root")
-        num_text = self.driver.find_element_by_class_name("num").text.strip()
-        comment_num = num_text[5:]
+        try:
+            num_text = self.driver.find_element_by_class_name("num").text.strip()
+            comment_num = num_text[5:]
+        except ValueError:
+            pass
         comment_list: List[str] = []
         for comment_box in comment_boxes:
             elem_comment = comment_box.find_element_by_class_name("cmtBody")
@@ -128,6 +133,7 @@ class WebScraper:
                 atom.comment_list
             ]
             df_list.append(row)
+        print(len(self.atom_list))
         df: pd.DataFrame = DataFrame(df_list, columns=["url", "title", "text", "date", "comment num", "comment list"])
         df.to_csv("result.csv")
 
